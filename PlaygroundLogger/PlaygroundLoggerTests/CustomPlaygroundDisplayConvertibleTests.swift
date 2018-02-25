@@ -36,7 +36,7 @@ class CustomPlaygroundDisplayConvertibleTests: XCTestCase {
         }
 
         XCTAssertEqual(name, "point")
-        XCTAssert(typeName.hasSuffix(".MyPoint"))
+        XCTAssertEqual(typeName, "MyPoint #1 in PlaygroundLoggerTests.CustomPlaygroundDisplayConvertibleTests.testBasicConformance() throws -> ()")
 
         guard let pointRepresentation = representation as? CGPoint else {
             XCTFail("Expected an instance of MyPoint to generate a CGPoint as its opaque representation")
