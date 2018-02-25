@@ -53,6 +53,16 @@ extension LogEntry {
         else if let defaultQuickLookable = instance as? _DefaultCustomPlaygroundQuickLookable {
             self = try .init(playgroundQuickLook: defaultQuickLookable._defaultCustomPlaygroundQuickLook, name: name, typeName: typeName, summary: summary)
         }
+
+        // nil ImplicitlyUnwrappedOptional values cause some hairy problems; most notably, `instance as AnyObject` crashes as it tries to unwrap the ImplicitlyUnwrappedOptional.
+        // To work around this, before we try to do that cast (or a similar cast below), we check to see if we have a nil ImplicitlyUnwrappedOptional before proceeding.
+        else if let checkableIUO = instance as? CheckableImplicitlyUnwrappedOptional, checkableIUO.isNil {
+            // We're trying to log an ImplicitlyUnwrappedOptional which is nil.
+            // As a result, we need to just generate a structured log entry and be done with it.
+            let mirror = Mirror(reflecting: instance)
+            self = .init(structureFrom: mirror, name: name, typeName: typeName, summary: summary, policy: policy, currentDepth: currentDepth)
+            return
+        }
             
         // If a type implements the `debugQuickLookObject()` Objective-C method, then get their debug quick look object and use that for logging (by passing it back through this initializer).
         else if let debugQuickLookObjectMethod = (instance as AnyObject).debugQuickLookObject, let debugQuickLookObject = debugQuickLookObjectMethod() {
@@ -247,5 +257,15 @@ extension Mirror {
     fileprivate func logEntry(named name: String, usingPolicy policy: LogPolicy, depth: Int) -> LogEntry {
         let subjectTypeName = normalizedName(of: self.subjectType)
         return LogEntry(structureFrom: self, name: name, typeName: subjectTypeName, summary: subjectTypeName, policy: policy, currentDepth: depth)
+    }
+}
+
+protocol CheckableImplicitlyUnwrappedOptional {
+    var isNil: Bool { get }
+}
+
+extension ImplicitlyUnwrappedOptional: CheckableImplicitlyUnwrappedOptional {
+    var isNil: Bool {
+        return self == nil
     }
 }
